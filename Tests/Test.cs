@@ -46,7 +46,7 @@ namespace Tests
 
         public static async Task Test()
         {
-            
+
         }
 
         public static async Task Join()
@@ -54,9 +54,12 @@ namespace Tests
             await InitAsync();
 
 
+
             var res = await database.MieszkoQuery<FirstEntity>().Select()
-                .Marching<SecondEntity, long, long>(x => x.Id, x => x.Id, (first, second) => first == second)
+                .Matching<SecondEntity, long, long>(x => x.Id, x => x.Id, (first, second) => first == second)
                 .ToListAsync();
+
+
         }
 
         public static async Task WhereTests()
@@ -64,20 +67,20 @@ namespace Tests
             await InitAsync();
 
 
-            
+
 
             var enumerableJack = await database.MieszkoQuery<FirstEntity>().Select().Where(x => x.Name == "Jack").ToListAsync();
             var onlyJack = await database.MieszkoQuery<FirstEntity>().Select().Where(x => x.Name == "Jack").FirstOrDefaultAsync();
             var nullResult = await database.MieszkoQuery<FirstEntity>().Select().Where(x => x.Name == "Katarzyna").FirstOrDefaultAsync();
-            var jackAndJesica = await database.MieszkoQuery<FirstEntity>().Select().WhereIn(x => x.Id, 1,2,3).ToListAsync();
+            var jackAndJesica = await database.MieszkoQuery<FirstEntity>().Select().WhereIn(x => x.Id, 1, 2, 3).ToListAsync();
 
-            var jackAndJesicaOrder = await database.MieszkoQuery<FirstEntity>().Select().WhereIn(x => x.Id, 1,2,3).OrderBy(x => x.Id).ToListAsync();
-            var jackAndJesicaOrderDesc = await database.MieszkoQuery<FirstEntity>().Select().WhereIn(x => x.Id, 1,2,3).OrderByDescending(x => x.Id).ToListAsync();
-            var jackAndJesicaOrderName = await database.MieszkoQuery<FirstEntity>().Select().WhereIn(x => x.Id, 1,2,3).OrderByDescending(x => x.Name).ToListAsync();
+            var jackAndJesicaOrder = await database.MieszkoQuery<FirstEntity>().Select().WhereIn(x => x.Id, 1, 2, 3).OrderBy(x => x.Id).ToListAsync();
+            var jackAndJesicaOrderDesc = await database.MieszkoQuery<FirstEntity>().Select().WhereIn(x => x.Id, 1, 2, 3).OrderByDescending(x => x.Id).ToListAsync();
+            var jackAndJesicaOrderName = await database.MieszkoQuery<FirstEntity>().Select().WhereIn(x => x.Id, 1, 2, 3).OrderByDescending(x => x.Name).ToListAsync();
 
 
 
-            var jackAndJesica1 = await database.MieszkoQuery<FirstEntity>().Select().WhereIn(x => x.Id, 1,2,3).OrderByDescending(x => x.Name).FirstOrDefaultAsync();
+            var jackAndJesica1 = await database.MieszkoQuery<FirstEntity>().Select().WhereIn(x => x.Id, 1, 2, 3).OrderByDescending(x => x.Name).FirstOrDefaultAsync();
 
             var just5 = await database.MieszkoQuery<FirstEntity>().Select().TakeAsync(5);
 
@@ -98,12 +101,12 @@ namespace Tests
 
     public class FirstEntity : Entity
     {
-        
+
     }
 
     public class SecondEntity : Entity
     {
- 
+
     }
 }
 

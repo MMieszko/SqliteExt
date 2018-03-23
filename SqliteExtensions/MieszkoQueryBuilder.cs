@@ -52,7 +52,7 @@ namespace SqliteExtensions
             return this.WhereIn(selector, new List<T>(collection));
         }
 
-        public QueryBuilder<TOut> Marching<TIn, TOutProperty, TInProperty>(Expression<Func<TOut, TOutProperty>> firstSelector,
+        public QueryBuilder<TOut> Matching<TIn, TOutProperty, TInProperty>(Expression<Func<TOut, TOutProperty>> firstSelector,
             Expression<Func<TIn, TOutProperty>> secondSelector, Expression<Func<TOutProperty, TInProperty, bool>> predicate,
             string joinType = null)
             where TIn : new()
@@ -61,10 +61,7 @@ namespace SqliteExtensions
 
             var innerTable = typeof(TIn).Name;
 
-            var query =
-                $@" {Sql.Join} {innerTable} {Sql.On} {innerTable}.{GetPropertyName(secondSelector)} {
-                        body.NodeType.ReadAsString()
-                    } {TableName}.{GetPropertyName(firstSelector)}";
+            var query = $@" {Sql.Join} {innerTable} {Sql.On} {innerTable}.{GetPropertyName(secondSelector)} {body.NodeType.ReadAsString()} {TableName}.{GetPropertyName(firstSelector)}";
 
             if (!string.IsNullOrEmpty(joinType))
                 query = joinType + query;
