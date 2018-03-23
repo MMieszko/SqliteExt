@@ -38,23 +38,23 @@ namespace SqliteExtensions
             return this;
         }
 
-        public QueryBuilder<TOut> WhereIn<T>(Expression<Func<TOut, T>> selector, IList<T> collection)
+        public QueryBuilder<TOut> WhereIn(Expression<Func<TOut, long>> selector, params long[] collection)
         {
-            var query = $"{TableName}.{GetPropertyName(selector)} {Sql.In} ({string.Join(",", collection)})";
-
-            Query.Append(_hasWhereClause ? $" {Sql.And} {query}" : $" {Sql.Where} {query}");
-
-            return this;
+            return this.WhereInImpl(selector, string.Join(",", collection));
         }
 
-        public QueryBuilder<TOut> WhereIn<T>(Expression<Func<TOut, T>> selector, params T[] collection)
+        public QueryBuilder<TOut> WhereIn(Expression<Func<TOut, string>> selector, params string[] collection)
         {
-            return this.WhereIn(selector, new List<T>(collection));
+            return this.WhereInImpl(selector, collection.ToQuotedStringJoin());
+        }
+
+        public QueryBuilder<TOut> WhereIn(Expression<Func<TOut, char>> selector, params char[] collection)
+        {
+            return this.WhereInImpl(selector, collection.ToSingleQuotedStringJoin());
         }
 
         public QueryBuilder<TOut> Matching<TIn, TOutProperty, TInProperty>(Expression<Func<TOut, TOutProperty>> firstSelector,
-            Expression<Func<TIn, TOutProperty>> secondSelector, Expression<Func<TOutProperty, TInProperty, bool>> predicate,
-            string joinType = null)
+            Expression<Func<TIn, TOutProperty>> secondSelector, Expression<Func<TOutProperty, TInProperty, bool>> predicate, string joinType = null)
             where TIn : new()
         {
             var body = predicate.Body.ToBinaryExpression();
@@ -101,6 +101,15 @@ namespace SqliteExtensions
         {
             var result = await TakeAsync(1);
             return result.FirstOrDefault();
+        }
+
+        protected QueryBuilder<TOut> WhereInImpl<T>(Expression<Func<TOut, T>> selector, string @in)
+        {
+            var query = $"{TableName}.{GetPropertyName(selector)} {Sql.In} ({@in})";
+
+            Query.Append(_hasWhereClause ? $" {Sql.And} {query}" : $" {Sql.Where} {query}");
+
+            return this;
         }
 
         #region - Private -

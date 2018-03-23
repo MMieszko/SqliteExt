@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
 using SQLite;
@@ -45,12 +46,21 @@ namespace SqliteExtensions
 
             throw new MieszkoQueryException("Only binary expressions are suppored");
         }
-        
+
         public static QueryBuilder<T> MieszkoQuery<T>(this SQLiteAsyncConnection @this)
             where T : new()
         {
             return new QueryBuilder<T>(@this);
         }
 
+        public static string ToQuotedStringJoin(this IEnumerable<string> @this)
+        {
+            return string.Join(",", @this.Select(item => $"\"{item}\"").ToList());
+        }
+
+        public static string ToSingleQuotedStringJoin(this IEnumerable<char> @this)
+        {
+            return string.Join(",", @this.Select(item => $"'{item}'").ToList());
+        }
     }
 }

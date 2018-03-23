@@ -54,6 +54,7 @@ namespace Tests
             await InitAsync();
 
 
+            var jackAndJesicaOrder = await database.MieszkoQuery<FirstEntity>().Select().WhereIn(x => x.Name, "Jack", "Jesica").OrderBy(x => x.Id).ToListAsync();
 
             var res = await database.MieszkoQuery<FirstEntity>().Select()
                 .Matching<SecondEntity, long, long>(x => x.Id, x => x.Id, (first, second) => first == second)
