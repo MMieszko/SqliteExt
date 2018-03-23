@@ -34,6 +34,8 @@ namespace SqliteExtensions
                     return "<";
                 case ExpressionType.LessThanOrEqual:
                     return "<=";
+                case ExpressionType.Or:
+                    return "||";
                 default:
                     throw new InvalidOperationException($"Given expression type ( {@this} ) is not valid");
             }
@@ -61,6 +63,17 @@ namespace SqliteExtensions
         public static string ToSingleQuotedStringJoin(this IEnumerable<char> @this)
         {
             return string.Join(",", @this.Select(item => $"'{item}'").ToList());
+        }
+
+        public static object GetValue(this MemberExpression member)
+        {
+            var objectMember = Expression.Convert(member, typeof(object));
+
+            var getterLambda = Expression.Lambda<Func<object>>(objectMember);
+
+            var getter = getterLambda.Compile();
+
+            return getter();
         }
     }
 }

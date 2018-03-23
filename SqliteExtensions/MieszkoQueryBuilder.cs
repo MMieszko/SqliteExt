@@ -30,7 +30,17 @@ namespace SqliteExtensions
         {
             var body = predicate.Body.ToBinaryExpression();
 
-            var query = $"{TableName}.{body.GetLeftMemeberName()} {body.NodeType.ReadAsString()} {body.Right}";
+            object rightValue;
+
+            if (body.Right is MemberExpression expression)
+                rightValue = expression.GetValue();
+            else
+                rightValue = body.Right;
+
+            if (rightValue is string)
+                rightValue = $"\"{rightValue}\"";
+
+            var query = $"{TableName}.{body.GetLeftMemeberName()} {body.NodeType.ReadAsString()} {rightValue}";
 
             Query.Append(_hasWhereClause ? $" {Sql.And} {query}" : $" {Sql.Where} {query}");
 
@@ -114,12 +124,11 @@ namespace SqliteExtensions
 
         #region - Private -
 
-        private string GetPropertyName<TTable, TProperty>(Expression<Func<TTable, TProperty>> selector)
+        private static string GetPropertyName<TTable, TProperty>(Expression<Func<TTable, TProperty>> selector)
             where TTable : new()
         {
             return ((PropertyInfo)((MemberExpression)selector.Body).Member).Name;
         }
-
         private StringBuilder Query
         {
             get
@@ -130,7 +139,6 @@ namespace SqliteExtensions
             }
             set { _query = value; }
         }
-
         private readonly SQLiteAsyncConnection _conection;
         private bool _hasWhereClause;
         private StringBuilder _query;

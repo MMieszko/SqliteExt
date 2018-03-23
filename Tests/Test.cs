@@ -53,7 +53,13 @@ namespace Tests
         {
             await InitAsync();
 
+            var f = await database.MieszkoQuery<FirstEntity>().Select().FirstOrDefaultAsync();
 
+
+            var elo = await database.MieszkoQuery<FirstEntity>()
+                .Select().Where(x => x.Id == f.Id).Where(x => x.Name == f.Name).ToListAsync();
+
+            
             var jackAndJesicaOrder = await database.MieszkoQuery<FirstEntity>().Select().WhereIn(x => x.Name, "Jack", "Jesica").OrderBy(x => x.Id).ToListAsync();
 
             var res = await database.MieszkoQuery<FirstEntity>().Select()
