@@ -45,7 +45,7 @@ namespace SqliteExtensions
         {
             if (@this is BinaryExpression result)
                 return result;
-
+            
             throw new MieszkoQueryException("Only binary expressions are suppored");
         }
 

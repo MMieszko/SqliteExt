@@ -53,17 +53,14 @@ namespace Tests
         {
             await InitAsync();
 
-            var f = await database.MieszkoQuery<FirstEntity>().Select().FirstOrDefaultAsync();
+            var f = await database.MieszkoQuery<FirstEntity>().FirstOrDefaultAsync();
 
-
-            var elo = await database.MieszkoQuery<FirstEntity>()
-                .Select().Where(x => x.Id == f.Id).Where(x => x.Name == f.Name).ToListAsync();
 
             
-            var jackAndJesicaOrder = await database.MieszkoQuery<FirstEntity>().Select().WhereIn(x => x.Name, "Jack", "Jesica").OrderBy(x => x.Id).ToListAsync();
 
-            var res = await database.MieszkoQuery<FirstEntity>().Select()
-                .Matching<SecondEntity, long, long>(x => x.Id, x => x.Id, (first, second) => first == second)
+            var jackAndJesicaOrder = await database.MieszkoQuery<FirstEntity>().WhereIn(x => x.Name, "Jack", "Jesica").OrderBy(x => x.Id).ToListAsync();
+
+            var res = await database.MieszkoQuery<FirstEntity>().Matching<SecondEntity, long, long>(x => x.Id, x => x.Id, (first, second) => first == second)
                 .ToListAsync();
 
 
@@ -76,20 +73,20 @@ namespace Tests
 
 
 
-            var enumerableJack = await database.MieszkoQuery<FirstEntity>().Select().Where(x => x.Name == "Jack").ToListAsync();
-            var onlyJack = await database.MieszkoQuery<FirstEntity>().Select().Where(x => x.Name == "Jack").FirstOrDefaultAsync();
-            var nullResult = await database.MieszkoQuery<FirstEntity>().Select().Where(x => x.Name == "Katarzyna").FirstOrDefaultAsync();
-            var jackAndJesica = await database.MieszkoQuery<FirstEntity>().Select().WhereIn(x => x.Id, 1, 2, 3).ToListAsync();
+            var enumerableJack = await database.MieszkoQuery<FirstEntity>().Where(x => x.Name == "Jack").ToListAsync();
+            var onlyJack = await database.MieszkoQuery<FirstEntity>().Where(x => x.Name == "Jack").FirstOrDefaultAsync();
+            var nullResult = await database.MieszkoQuery<FirstEntity>().Where(x => x.Name == "Katarzyna").FirstOrDefaultAsync();
+            var jackAndJesica = await database.MieszkoQuery<FirstEntity>().WhereIn(x => x.Id, 1, 2, 3).ToListAsync();
 
-            var jackAndJesicaOrder = await database.MieszkoQuery<FirstEntity>().Select().WhereIn(x => x.Id, 1, 2, 3).OrderBy(x => x.Id).ToListAsync();
-            var jackAndJesicaOrderDesc = await database.MieszkoQuery<FirstEntity>().Select().WhereIn(x => x.Id, 1, 2, 3).OrderByDescending(x => x.Id).ToListAsync();
-            var jackAndJesicaOrderName = await database.MieszkoQuery<FirstEntity>().Select().WhereIn(x => x.Id, 1, 2, 3).OrderByDescending(x => x.Name).ToListAsync();
+            var jackAndJesicaOrder = await database.MieszkoQuery<FirstEntity>().WhereIn(x => x.Id, 1, 2, 3).OrderBy(x => x.Id).ToListAsync();
+            var jackAndJesicaOrderDesc = await database.MieszkoQuery<FirstEntity>().WhereIn(x => x.Id, 1, 2, 3).OrderByDescending(x => x.Id).ToListAsync();
+            var jackAndJesicaOrderName = await database.MieszkoQuery<FirstEntity>().WhereIn(x => x.Id, 1, 2, 3).OrderByDescending(x => x.Name).ToListAsync();
 
 
 
-            var jackAndJesica1 = await database.MieszkoQuery<FirstEntity>().Select().WhereIn(x => x.Id, 1, 2, 3).OrderByDescending(x => x.Name).FirstOrDefaultAsync();
+            var jackAndJesica1 = await database.MieszkoQuery<FirstEntity>().WhereIn(x => x.Id, 1, 2, 3).OrderByDescending(x => x.Name).FirstOrDefaultAsync();
 
-            var just5 = await database.MieszkoQuery<FirstEntity>().Select().TakeAsync(5);
+            var just5 = await database.MieszkoQuery<FirstEntity>().TakeAsync(5);
 
         }
 

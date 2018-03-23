@@ -7,7 +7,6 @@ using System.Text;
 using System.Threading.Tasks;
 using SQLite;
 
-
 namespace SqliteExtensions
 {
     public class QueryBuilder<TOut>
@@ -18,14 +17,9 @@ namespace SqliteExtensions
         public QueryBuilder(SQLiteAsyncConnection conection)
         {
             _conection = conection;
-        }
-
-        public QueryBuilder<TOut> Select()
-        {
             Query = new StringBuilder($"{Sql.Select} {Sql.Star} {Sql.From} {TableName}");
-            return this;
         }
-
+        
         public QueryBuilder<TOut> Where(Expression<Func<TOut, bool>> predicate)
         {
             var body = predicate.Body.ToBinaryExpression();
@@ -129,19 +123,10 @@ namespace SqliteExtensions
         {
             return ((PropertyInfo)((MemberExpression)selector.Body).Member).Name;
         }
-        private StringBuilder Query
-        {
-            get
-            {
-                if (_query == null)
-                    throw new MieszkoQueryException($"Use {nameof(Select)} as first method");
-                return _query;
-            }
-            set { _query = value; }
-        }
+        private StringBuilder Query { get; }
+
         private readonly SQLiteAsyncConnection _conection;
         private bool _hasWhereClause;
-        private StringBuilder _query;
 
         #endregion
 
