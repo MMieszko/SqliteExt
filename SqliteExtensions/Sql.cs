@@ -15,5 +15,6 @@ namespace SqliteExtensions
         public const string Limit = "LIMIT";
         public const string Join = "JOIN";
         public const string On = "ON";
+        public const string Like = "LIKE";
     }
 }

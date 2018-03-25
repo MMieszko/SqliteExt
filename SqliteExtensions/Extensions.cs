@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
 using System.Text;
 using SQLite;
 
@@ -13,11 +14,9 @@ namespace SqliteExtensions
         public static string GetLeftMemeberName(this BinaryExpression @this)
         {
             if (@this.Left is MemberExpression left)
-            {
                 return left.Member.Name;
-            }
 
-            return null;
+            throw new MieszkoQueryException("Multiple conditions are not supported. Use one condition in each method");
         }
 
         public static string ReadAsString(this ExpressionType @this)
@@ -45,7 +44,7 @@ namespace SqliteExtensions
         {
             if (@this is BinaryExpression result)
                 return result;
-            
+
             throw new MieszkoQueryException("Only binary expressions are suppored");
         }
 
@@ -74,6 +73,18 @@ namespace SqliteExtensions
             var getter = getterLambda.Compile();
 
             return getter();
+        }
+
+        public static PropertyInfo GetPrimaryKey<TTable>()
+            where TTable : new()
+        {
+            var properties = typeof(TTable).GetProperties();
+            var primaryKeyProperty = properties.FirstOrDefault(x => x.GetCustomAttributes<PrimaryKeyAttribute>() != null);
+
+            if (primaryKeyProperty == null)
+                throw new MieszkoQueryException($"Could not find primary key for given table {typeof(TTable).Name}");
+
+            return primaryKeyProperty;
         }
     }
 }

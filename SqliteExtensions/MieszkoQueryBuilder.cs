@@ -9,18 +9,19 @@ using SQLite;
 
 namespace SqliteExtensions
 {
-    public class QueryBuilder<TOut>
-        where TOut : new()
+    public class QueryBuilder<TTable>
+        where TTable : new()
     {
-        public string TableName => typeof(TOut).Name;
+        public string TableName => typeof(TTable).Name;
 
         public QueryBuilder(SQLiteAsyncConnection conection)
         {
             _conection = conection;
-            Query = new StringBuilder($"{Sql.Select} {Sql.Star} {Sql.From} {TableName}");
+            _query = new StringBuilder($"{Sql.Select} {Sql.Star} {Sql.From} {TableName}");
+            _includes = new List<(string propertyname, object includedPropery)>();
         }
-        
-        public QueryBuilder<TOut> Where(Expression<Func<TOut, bool>> predicate)
+
+        public QueryBuilder<TTable> Where(Expression<Func<TTable, bool>> predicate)
         {
             var body = predicate.Body.ToBinaryExpression();
 
@@ -34,102 +35,129 @@ namespace SqliteExtensions
             if (rightValue is string)
                 rightValue = $"\"{rightValue}\"";
 
-            var query = $"{TableName}.{body.GetLeftMemeberName()} {body.NodeType.ReadAsString()} {rightValue}";
-
-            Query.Append(_hasWhereClause ? $" {Sql.And} {query}" : $" {Sql.Where} {query}");
-
-            _hasWhereClause = true;
-            return this;
+            return AttatchToQueryChain($"{TableName}.{body.GetLeftMemeberName()} {body.NodeType.ReadAsString()} {rightValue}", Sql.Where);
         }
 
-        public QueryBuilder<TOut> WhereIn(Expression<Func<TOut, long>> selector, params long[] collection)
+        public QueryBuilder<TTable> In(Expression<Func<TTable, long>> selector, params long[] collection)
         {
-            return this.WhereInImpl(selector, string.Join(",", collection));
+            return this.InImpl(selector, string.Join(",", collection));
         }
 
-        public QueryBuilder<TOut> WhereIn(Expression<Func<TOut, string>> selector, params string[] collection)
+        public QueryBuilder<TTable> In(Expression<Func<TTable, string>> selector, params string[] collection)
         {
-            return this.WhereInImpl(selector, collection.ToQuotedStringJoin());
+            return this.InImpl(selector, collection.ToQuotedStringJoin());
         }
 
-        public QueryBuilder<TOut> WhereIn(Expression<Func<TOut, char>> selector, params char[] collection)
+        public QueryBuilder<TTable> In(Expression<Func<TTable, char>> selector, params char[] collection)
         {
-            return this.WhereInImpl(selector, collection.ToSingleQuotedStringJoin());
+            return this.InImpl(selector, collection.ToSingleQuotedStringJoin());
         }
 
-        public QueryBuilder<TOut> Matching<TIn, TOutProperty, TInProperty>(Expression<Func<TOut, TOutProperty>> firstSelector,
-            Expression<Func<TIn, TOutProperty>> secondSelector, Expression<Func<TOutProperty, TInProperty, bool>> predicate, string joinType = null)
-            where TIn : new()
+        public QueryBuilder<TTable> Like<TProperty>(Expression<Func<TTable, TProperty>> selector, string param)
         {
-            var body = predicate.Body.ToBinaryExpression();
+            var query = $"{TableName}.{GetPropertyName(selector)} {Sql.Like} ({param})";
 
-            var innerTable = typeof(TIn).Name;
-
-            var query = $@" {Sql.Join} {innerTable} {Sql.On} {innerTable}.{GetPropertyName(secondSelector)} {body.NodeType.ReadAsString()} {TableName}.{GetPropertyName(firstSelector)}";
-
-            if (!string.IsNullOrEmpty(joinType))
-                query = joinType + query;
-
-            Query.Append(query);
+            _query.Append(_isQueryChainCreated ? $" {Sql.And} {query}" : $" {Sql.Where} {query}");
 
             return this;
         }
 
-        public QueryBuilder<TOut> OrderBy<TProperty>(Expression<Func<TOut, TProperty>> selector)
+        public QueryBuilder<TTable> OrderBy<TProperty>(Expression<Func<TTable, TProperty>> selector)
         {
-            Query.Append($" {Sql.OrderBy} {TableName}.{GetPropertyName(selector)}");
+            _query.Append($" {Sql.OrderBy} {TableName}.{GetPropertyName(selector)}");
 
             return this;
         }
 
-        public QueryBuilder<TOut> OrderByDescending<TProperty>(Expression<Func<TOut, TProperty>> selector)
+        public QueryBuilder<TTable> OrderByDescending<TProperty>(Expression<Func<TTable, TProperty>> selector)
         {
-            Query.Append($" {Sql.OrderBy} {TableName}.{GetPropertyName(selector)} {Sql.Desc}");
+            _query.Append($" {Sql.OrderBy} {TableName}.{GetPropertyName(selector)} {Sql.Desc}");
 
             return this;
         }
 
-        public Task<List<TOut>> ToListAsync()
+        public QueryBuilder<TTable> Include<TInnerTable>(Expression<Func<TTable, TInnerTable>> selector, object primaryKey)
+            where TInnerTable : new()
         {
-            return _conection.QueryAsync<TOut>(Query.ToString());
-        }
+            var includedPropertyName = GetPropertyName(selector);
 
-        public Task<List<TOut>> TakeAsync(int count)
-        {
-            Query.Append($" {Sql.Limit} {count}");
+            if (string.IsNullOrEmpty(includedPropertyName))
+                throw new MieszkoQueryException($"Could not find {includedPropertyName}");
 
-            return _conection.QueryAsync<TOut>(Query.ToString());
-        }
+            var includedEntity = AsyncHelpers.RunSync(() => _conection.GetAsync<TInnerTable>(primaryKey));
 
-        public async Task<TOut> FirstOrDefaultAsync()
-        {
-            var result = await TakeAsync(1);
-            return result.FirstOrDefault();
-        }
+            if (includedEntity == null)
+                throw new MieszkoQueryException($"Could not find {nameof(TInnerTable)}");
 
-        protected QueryBuilder<TOut> WhereInImpl<T>(Expression<Func<TOut, T>> selector, string @in)
-        {
-            var query = $"{TableName}.{GetPropertyName(selector)} {Sql.In} ({@in})";
-
-            Query.Append(_hasWhereClause ? $" {Sql.And} {query}" : $" {Sql.Where} {query}");
+            _includes.Add((includedPropertyName, includedEntity));
 
             return this;
         }
-
-        #region - Private -
-
-        private static string GetPropertyName<TTable, TProperty>(Expression<Func<TTable, TProperty>> selector)
-            where TTable : new()
+        
+        public async Task<IEnumerable<TTable>> ToListAsync()
         {
-            return ((PropertyInfo)((MemberExpression)selector.Body).Member).Name;
+            var result = (await _conection.QueryAsync<TTable>(_query.ToString())).ToArray();
+            AttachIncludes(result);
+            return result;
         }
-        private StringBuilder Query { get; }
 
-        private readonly SQLiteAsyncConnection _conection;
-        private bool _hasWhereClause;
+        public async Task<IEnumerable<TTable>> TakeAsync(int count)
+        {
+            _query.Append($" {Sql.Limit} {count}");
+            var result = (await _conection.QueryAsync<TTable>(_query.ToString())).ToArray();
+            AttachIncludes(result);
+            return result;
+        }
+
+        public async Task<TTable> FirstOrDefaultAsync()
+        {
+            var collectionResult = await TakeAsync(1);
+            var result = collectionResult.FirstOrDefault();
+            AttachIncludes(result);
+            return result;
+        }
+
+        #region - Protected - 
+
+        protected virtual void AttachIncludes(params TTable[] entities)
+        {
+            if (entities == null || entities.Any()) return;
+
+            foreach (var entity in entities)
+            {
+                foreach (var (propertyname, includedPropery) in _includes)
+                {
+                    var property = typeof(TTable).GetProperty(propertyname);
+                    property.SetValue(entity, includedPropery);
+                }
+            }
+        }
+
+        protected virtual QueryBuilder<TTable> InImpl<T>(Expression<Func<TTable, T>> selector, string @in)
+        {
+            return AttatchToQueryChain($"{TableName}.{GetPropertyName(selector)} {Sql.In} ({@in})", Sql.In);
+        }
+
+        protected virtual QueryBuilder<TTable> AttatchToQueryChain(string query, string caluse)
+        {
+            _query.Append(_isQueryChainCreated ? $" {Sql.And} {query}" : $" {Sql.Where} {query}");
+
+            _isQueryChainCreated = true; ;
+            return this;
+        }
 
         #endregion
 
-    }
+        #region - Private -
 
+        private List<(string propertyname, object includedPropery)> _includes;
+        private static string GetPropertyName<TProperty>(Expression<Func<TTable, TProperty>> selector)
+        {
+            return ((PropertyInfo)((MemberExpression)selector.Body).Member).Name;
+        }
+        private readonly StringBuilder _query;
+        private readonly SQLiteAsyncConnection _conection;
+        private bool _isQueryChainCreated;
+        #endregion
+    }
 }

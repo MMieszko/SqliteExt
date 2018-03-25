@@ -8,8 +8,8 @@ namespace Tests
     {
         public static void Main(string[] args)
         {
-            //Tests.TestClass.WhereTests().Wait();
-            TestClass.WhereTests().Wait();
+            Tests.TestClass.Join().Wait();
+            //TestClass.WhereTests().Wait();
         }
     }
 }
